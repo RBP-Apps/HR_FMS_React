@@ -1,23 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Download } from 'lucide-react';
+import Select from 'react-select';
+
 
 const Attendancedaily = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [attendanceData, setAttendanceData] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // States
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedName, setSelectedName] = useState('');
 
-  const fetchAttendanceData = async () => {
-    setLoading(true);
-    setTableLoading(true);
-    setError(null);
+  const [uniqueMonths, setUniqueMonths] = useState([]);
+  const [uniqueNames, setUniqueNames] = useState([]);
 
+
+
+  const fetchUniqueMonths = async () => {
     try {
       const response = await fetch(
-        'https://script.google.com/macros/s/AKfycby9QCly-0XBtGHUqanlO6mPWRn79e_XOYhYUG6irCL60WG96JJpDCc4iTOdLRuVeUOa/exec?sheet=Report Daily&action=fetch'
+        'https://script.google.com/macros/s/AKfycby9QCly-0XBtGHUqanlO6mPWRn79e_XOYhYUG6irCL60WG96JJpDCc4iTOdLRuVeUOa/exec?action=getUniqueMonths'
       );
 
       if (!response.ok) {
@@ -25,105 +34,162 @@ const Attendancedaily = () => {
       }
 
       const result = await response.json();
-      console.log('Raw Report Daily API response:', result);
 
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch data from Report Daily sheet');
+      if (result.success) {
+        setUniqueMonths(result.months || []);
       }
-
-      const rawData = result.data || result;
-
-      if (!Array.isArray(rawData)) {
-        throw new Error('Expected array data not received');
-      }
-
-      // Process data - assuming first row contains headers
-      const headers = rawData[0]; // First row as headers
-      const dataRows = rawData.length > 1 ? rawData.slice(1) : [];
-
-      const processedData = dataRows.map((row) => ({
-        year: row[0] || '', // Column A (index-0)
-        monthName: row[1] || '', // Column B (index-1)
-        date: row[2] || '', // Column C (index-2)
-        day: row[3] || '', // Column D (index-3)
-        companyName: row[4] || '', // Column E (index-4)
-        empIdCode: row[5] || '', // Column F (index-5)
-        name: row[6] || '', // Column G (index-6)
-        designation: row[7] || '', // Column H (index-7)
-        holiday: row[8] || '', // Column I (index-8)
-        workingDay: row[9] || '', // Column J (index-9)
-        nHoliday: row[10] || '', // Column K (index-10)
-        status: row[11] || '', // Column L (index-11)
-        inTime: row[12] || '', // Column M (index-12)
-        outTime: row[13] || '', // Column N (index-13)
-        workingHours: row[14] || '', // Column O (index-14)
-        lateMinutes: row[15] || '', // Column P (index-15)
-        earlyOut: row[16] || '', // Column Q (index-16)
-        overtimeHours: row[17] || '', // Column R (index-17)
-        punchMiss: row[18] || '', // Column S (index-18)
-        remarks: row[19] || '', // Column T (index-19)
-      }));
-
-      console.log('Processed attendance data:', processedData);
-      setAttendanceData(processedData);
-
     } catch (error) {
-      console.error('Error fetching Report Daily data:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
-      setTableLoading(false);
+      console.error('Error fetching unique months:', error);
     }
   };
 
+  const fetchUniqueNames = async () => {
+    try {
+      const response = await fetch(
+        'https://script.google.com/macros/s/AKfycby9QCly-0XBtGHUqanlO6mPWRn79e_XOYhYUG6irCL60WG96JJpDCc4iTOdLRuVeUOa/exec?action=getUniqueNames'
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setUniqueNames(result.names || []);
+      }
+    } catch (error) {
+      console.error('Error fetching unique names:', error);
+    }
+  };
+
+
+  const fetchAttendanceData = async (pageNum = 1, append = false, filters = {}) => {
+    if (pageNum === 1) {
+      // setLoading(true);
+      setTableLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+    setError(null);
+
+    try {
+      // Build query params with filters
+      let url = `https://script.google.com/macros/s/AKfycby9QCly-0XBtGHUqanlO6mPWRn79e_XOYhYUG6irCL60WG96JJpDCc4iTOdLRuVeUOa/exec?sheet=Report Daily&action=fetch&page=${pageNum}&limit=500`;
+
+      if (filters.month) {
+        url += `&month=${encodeURIComponent(filters.month)}`;
+      }
+      if (filters.name) {
+        url += `&name=${encodeURIComponent(filters.name)}`;
+      }
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch data');
+      }
+
+      const rawData = result.data || [];
+      const dataRows = rawData.length > 1 ? rawData.slice(1) : [];
+
+      const processedData = dataRows.map((row) => ({
+        year: row[0] || '',
+        monthName: row[1] || '',
+        date: row[2] || '',
+        empIdCode: row[3] || '',
+        name: row[4] || '',
+        inTime: row[5] || '',
+        outTime: row[6] || '',
+        day: row[7] || '',
+      }));
+
+      if (append) {
+        setAttendanceData(prev => [...prev, ...processedData]);
+      } else {
+        setAttendanceData(processedData);
+      }
+
+      setHasMore(result.pagination?.hasMore || false);
+      setPage(pageNum);
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError(error.message);
+    } finally {
+      // setLoading(false);
+      setTableLoading(false);
+      setIsLoadingMore(false);
+    }
+  };
+
+  // Initial load
   useEffect(() => {
-    fetchAttendanceData();
+    fetchAttendanceData(1, false, { month: selectedMonth, name: selectedName });
+    fetchUniqueMonths();
+    fetchUniqueNames();
   }, []);
 
-  // Filter data based on search term and date range
+  // When filters change, reset and fetch
+  // When filters change, reset and fetch
+  useEffect(() => {
+    setPage(1);
+    setAttendanceData([]);
+    setTableLoading(true);
+    fetchAttendanceData(1, false, { month: selectedMonth, name: selectedName });
+  }, [selectedMonth, selectedName]);
+
+
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+
+    if (scrollTop + clientHeight >= scrollHeight - 100 && hasMore && !isLoadingMore) {
+      console.log('Loading next page:', page + 1);
+      fetchAttendanceData(page + 1, true, { month: selectedMonth, name: selectedName });
+    }
+  };
+
+
+  // Filter data based on search term, month & name
   const filteredData = attendanceData.filter(item => {
-    // Text search filter - now includes additional columns
-    const matchesSearch = 
+    // Text search filter
+    const matchesSearch =
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.empIdCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.year.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.monthName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.day.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.companyName.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Date range filter
-    let matchesDateRange = true;
-    if (startDate || endDate) {
-      const itemDate = new Date(item.date);
-      
-      if (startDate) {
-        const start = new Date(startDate);
-        if (itemDate < start) matchesDateRange = false;
-      }
-      
-      if (endDate && matchesDateRange) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999); // Include the entire end date
-        if (itemDate > end) matchesDateRange = false;
-      }
-    }
-    
-    return matchesSearch && matchesDateRange;
+      item.day.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Month filter
+    const matchesMonth = selectedMonth ? item.monthName === selectedMonth : true;
+
+    // Name filter
+    const matchesName = selectedName ? item.name === selectedName : true;
+
+    return matchesSearch && matchesMonth && matchesName;
   });
+
+
 
   // Download CSV function
   const downloadCSV = () => {
     if (filteredData.length === 0) return;
-    
+
     // Define CSV headers
     const headers = [
-      'Year', 'Month Name', 'Date', 'Day', 'Company Name', 'Emp ID Code', 
-      'Name', 'Designation', 'Holiday (Yes/No)', 'Working Day (Yes/No)', 
-      'N-Holiday (Holiday Name)', 'Status', 'In Time', 'Out Time', 
-      'Working Hours', 'Late Minutes', 'Early Out', 'Overtime Hours', 
+      'Year', 'Month Name', 'Date', 'Day', 'Company Name', 'Emp ID Code',
+      'Name', 'Designation', 'Holiday (Yes/No)', 'Working Day (Yes/No)',
+      'N-Holiday (Holiday Name)', 'Status', 'In Time', 'Out Time',
+      'Working Hours', 'Late Minutes', 'Early Out', 'Overtime Hours',
       'Punch Miss', 'Remarks'
     ];
-    
+
     // Convert data to CSV format
     const csvData = filteredData.map(item => [
       item.year, item.monthName, item.date, item.day, item.companyName,
@@ -131,13 +197,13 @@ const Attendancedaily = () => {
       item.nHoliday, item.status, item.inTime, item.outTime, item.workingHours,
       item.lateMinutes, item.earlyOut, item.overtimeHours, item.punchMiss, item.remarks
     ]);
-    
+
     // Create CSV content
     const csvContent = [
       headers.join(','),
       ...csvData.map(row => row.map(field => `"${field}"`).join(','))
     ].join('\n');
-    
+
     // Create download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -160,48 +226,68 @@ const Attendancedaily = () => {
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search Bar */}
-          <div className="flex-1">
-            <div className="relative">
+          <div>
+            <div className="relative w-96">
               <input
                 type="text"
                 placeholder="Search..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-500"
+                className="w-full pl-10 pr-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+
               <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
             </div>
           </div>
-          
-          {/* Date Range Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-              <input
-                type="date"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
+
+          {/* Month & Name Filters */}
+          <div className="flex flex-wrap gap-4 items-center">
+
+            {/* Month Dropdown */}
+            {/* Month Dropdown */}
+            <div className="flex items-center gap-2 flex-1">
+              <label className="text-sm font-medium text-gray-700">Month:</label>
+              <select
+                className="flex-1 px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+              >
+                <option value="">All</option>
+                {uniqueMonths.map((month, idx) => (
+                  <option key={idx} value={month}>{month}</option>
+                ))}
+              </select>
             </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+            {/* Name Dropdown */}
+            {/* Name Dropdown */}
+            <div className="flex items-center gap-2 flex-1 relative">
+              <label className="text-sm font-medium text-gray-700">Name:</label>
+
               <input
-                type="date"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                type="text"
+                placeholder="Search name..."
+                className="flex-1 px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedName}
+                onChange={(e) => setSelectedName(e.target.value)}
+                list="namesList"
               />
+
+              <datalist id="namesList">
+                {uniqueNames.map((name, idx) => (
+                  <option key={idx} value={name} />
+                ))}
+              </datalist>
             </div>
+
           </div>
-          
+
           {/* Download Button */}
           <div className="flex items-end">
             <button
               onClick={downloadCSV}
               disabled={filteredData.length === 0}
-              className={`flex items-center px-4 py-2 rounded-lg ${filteredData.length === 0 
-                ? 'bg-gray-300 cursor-not-allowed' 
+              className={`flex items-center px-4 py-2 rounded-lg ${filteredData.length === 0
+                ? 'bg-gray-300 cursor-not-allowed'
                 : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
             >
               <Download size={18} className="mr-2" />
@@ -214,36 +300,31 @@ const Attendancedaily = () => {
       {/* Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="p-6">
-          <div className="overflow-x-auto">
+          <div
+            className="overflow-x-auto"
+            style={{ maxHeight: '70vh', overflowY: 'auto' }}
+            onScroll={handleScroll}
+          >
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Emp ID Code</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Designation</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Holiday (Yes/No)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Working Day (Yes/No)</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N-Holiday</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">In Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Out Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Working Hours</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Late Minutes</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Early Out</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Overtime Hours</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punch Miss</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Year</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">In Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Out Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Day</th>
                 </tr>
               </thead>
+
+
+
               <tbody className="bg-white divide-y divide-gray-200">
                 {tableLoading ? (
                   <tr>
-                    <td colSpan="20" className="px-6 py-12 text-center">
+                    <td colSpan="8" className="px-6 py-12 text-center">
                       <div className="flex justify-center flex-col items-center">
                         <div className="w-6 h-6 border-4 border-indigo-500 border-dashed rounded-full animate-spin mb-2"></div>
                         <span className="text-gray-600 text-sm">Loading attendance data...</span>
@@ -252,7 +333,7 @@ const Attendancedaily = () => {
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan="20" className="px-6 py-12 text-center">
+                    <td colSpan="8" className="px-6 py-12 text-center">
                       <p className="text-red-500">Error: {error}</p>
                       <button
                         onClick={fetchAttendanceData}
@@ -265,37 +346,33 @@ const Attendancedaily = () => {
                 ) : filteredData.length > 0 ? (
                   filteredData.map((item, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.year}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.monthName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.date}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.day}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.companyName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.empIdCode}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.designation}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.holiday}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.workingDay}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.nHoliday}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.status}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.inTime}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.outTime}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.workingHours}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.lateMinutes}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.earlyOut}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.overtimeHours}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.punchMiss}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.remarks}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{item.year}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{item.monthName}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{item.date}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{item.empIdCode}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{item.name}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{item.inTime}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{item.outTime}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{item.day}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="20" className="px-6 py-12 text-center">
+                    <td colSpan="8" className="px-6 py-12 text-center">
                       <p className="text-gray-500">No attendance records found.</p>
                     </td>
                   </tr>
                 )}
               </tbody>
+
+
             </table>
+            {isLoadingMore && (
+              <div className="text-center py-4">
+                <div className="inline-block w-6 h-6 border-4 border-indigo-500 border-dashed rounded-full animate-spin"></div>
+                <span className="ml-2 text-gray-600 text-sm">Loading more...</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
