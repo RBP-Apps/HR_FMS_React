@@ -21,7 +21,8 @@ const Attendancedaily = () => {
   const [uniqueMonths, setUniqueMonths] = useState([]);
   const [uniqueNames, setUniqueNames] = useState([]);
 
-
+  const [selectedYear, setSelectedYear] = useState('');
+  const [uniqueYears, setUniqueYears] = useState([]);
 
   const fetchUniqueMonths = async () => {
     try {
@@ -77,6 +78,10 @@ const Attendancedaily = () => {
       // Build query params with filters
       let url = `https://script.google.com/macros/s/AKfycby9QCly-0XBtGHUqanlO6mPWRn79e_XOYhYUG6irCL60WG96JJpDCc4iTOdLRuVeUOa/exec?sheet=Report Daily&action=fetch&page=${pageNum}&limit=500`;
 
+      if (filters.year) {
+        url += `&year=${encodeURIComponent(filters.year)}`;
+      }
+
       if (filters.month) {
         url += `&month=${encodeURIComponent(filters.month)}`;
       }
@@ -129,36 +134,55 @@ const Attendancedaily = () => {
     }
   };
 
+  const fetchUniqueYears = async () => {
+    try {
+      const response = await fetch(
+        'https://script.google.com/macros/s/AKfycby9QCly-0XBtGHUqanlO6mPWRn79e_XOYhYUG6irCL60WG96JJpDCc4iTOdLRuVeUOa/exec?action=getUniqueYears'
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setUniqueYears(result.years || []);
+      }
+    } catch (error) {
+      console.error('Error fetching unique years:', error);
+    }
+  };
+
   // Initial load
   useEffect(() => {
-    fetchAttendanceData(1, false, { month: selectedMonth, name: selectedName });
+    // fetchAttendanceData(1, false, { month: selectedMonth, name: selectedName });
     fetchUniqueMonths();
+    fetchUniqueYears();
     fetchUniqueNames();
   }, []);
 
   // When filters change, reset and fetch
   // When filters change, reset and fetch
-  useEffect(() => {
-    setPage(1);
-    setAttendanceData([]);
-    setTableLoading(true);
-    fetchAttendanceData(1, false, { month: selectedMonth, name: selectedName });
-  }, [selectedMonth, selectedName]);
-
+  //   useEffect(() => {
+  //   setPage(1);
+  //   setAttendanceData([]);
+  //   setTableLoading(true);
+  //   fetchAttendanceData(1, false, { year: selectedYear, month: selectedMonth, name: selectedName });
+  // }, [selectedYear, selectedMonth, selectedName]);
 
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
 
     if (scrollTop + clientHeight >= scrollHeight - 100 && hasMore && !isLoadingMore) {
       console.log('Loading next page:', page + 1);
-      fetchAttendanceData(page + 1, true, { month: selectedMonth, name: selectedName });
+      fetchAttendanceData(page + 1, true, { year: selectedYear, month: selectedMonth, name: selectedName }); // year add kiya
     }
   };
 
 
   // Filter data based on search term, month & name
   const filteredData = attendanceData.filter(item => {
-    // Text search filter
     const matchesSearch =
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.empIdCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -166,13 +190,11 @@ const Attendancedaily = () => {
       item.monthName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.day.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Month filter
+    const matchesYear = selectedYear ? item.year.toString() === selectedYear : true;
     const matchesMonth = selectedMonth ? item.monthName === selectedMonth : true;
-
-    // Name filter
     const matchesName = selectedName ? item.name === selectedName : true;
 
-    return matchesSearch && matchesMonth && matchesName;
+    return matchesSearch && matchesYear && matchesMonth && matchesName;
   });
 
 
@@ -223,11 +245,13 @@ const Attendancedaily = () => {
       </div>
 
       {/* Filters Section */}
+      {/* Filters Section */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col lg:flex-row gap-4 items-end"> {/* items-end add kiya */}
+
           {/* Search Bar */}
-          <div>
-            <div className="relative w-96">
+          <div className="flex-1">
+            <div className="relative w-full">
               <input
                 type="text"
                 placeholder="Search..."
@@ -235,65 +259,87 @@ const Attendancedaily = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-
               <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
             </div>
           </div>
 
-          {/* Month & Name Filters */}
-          <div className="flex flex-wrap gap-4 items-center">
-
-            {/* Month Dropdown */}
-            {/* Month Dropdown */}
-            <div className="flex items-center gap-2 flex-1">
-              <label className="text-sm font-medium text-gray-700">Month:</label>
-              <select
-                className="flex-1 px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-              >
-                <option value="">All</option>
-                {uniqueMonths.map((month, idx) => (
-                  <option key={idx} value={month}>{month}</option>
-                ))}
-              </select>
-            </div>
-            {/* Name Dropdown */}
-            {/* Name Dropdown */}
-            <div className="flex items-center gap-2 flex-1 relative">
-              <label className="text-sm font-medium text-gray-700">Name:</label>
-
-              <input
-                type="text"
-                placeholder="Search name..."
-                className="flex-1 px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={selectedName}
-                onChange={(e) => setSelectedName(e.target.value)}
-                list="namesList"
-              />
-
-              <datalist id="namesList">
-                {uniqueNames.map((name, idx) => (
-                  <option key={idx} value={name} />
-                ))}
-              </datalist>
-            </div>
-
+          {/* Year Dropdown */}
+          <div className="flex flex-col gap-1 flex-1">
+            <label className="text-sm font-medium text-gray-700">Year:</label>
+            <select
+              className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+            >
+              <option value="">All</option>
+              {uniqueYears.map((year, idx) => (
+                <option key={idx} value={year}>{year}</option>
+              ))}
+            </select>
           </div>
+
+          {/* Month Dropdown */}
+          <div className="flex flex-col gap-1 flex-1">
+            <label className="text-sm font-medium text-gray-700">Month:</label>
+            <select
+              className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            >
+              <option value="">All</option>
+              {uniqueMonths.map((month, idx) => (
+                <option key={idx} value={month}>{month}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Name Dropdown */}
+          <div className="flex flex-col gap-1 flex-1">
+            <label className="text-sm font-medium text-gray-700">Name:</label>
+            <input
+              type="text"
+              placeholder="Search name..."
+              className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={selectedName}
+              onChange={(e) => setSelectedName(e.target.value)}
+              list="namesList"
+            />
+            <datalist id="namesList">
+              {uniqueNames.map((name, idx) => (
+                <option key={idx} value={name} />
+              ))}
+            </datalist>
+          </div>
+
+          {/* OK Button - conditional disable */}
+          <button
+            onClick={() => {
+              setPage(1);
+              setAttendanceData([]);
+              fetchAttendanceData(1, false, { year: selectedYear, month: selectedMonth, name: selectedName });
+            }}
+            disabled={!selectedYear && !selectedMonth && !selectedName}
+            className={`px-4 py-2 rounded-lg whitespace-nowrap ${!selectedYear && !selectedMonth && !selectedName
+                ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
+          >
+            OK
+          </button>
 
           {/* Download Button */}
-          <div className="flex items-end">
-            <button
-              onClick={downloadCSV}
-              disabled={filteredData.length === 0}
-              className={`flex items-center px-4 py-2 rounded-lg ${filteredData.length === 0
+          <button
+            onClick={downloadCSV}
+            disabled={filteredData.length === 0}
+            className={`flex items-center px-4 py-2 rounded-lg whitespace-nowrap ${filteredData.length === 0
                 ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
-            >
-              <Download size={18} className="mr-2" />
-              Download
-            </button>
-          </div>
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
+          >
+            <Download size={18} className="mr-2" />
+            Download
+          </button>
+
         </div>
       </div>
 

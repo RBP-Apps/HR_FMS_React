@@ -128,7 +128,7 @@ const Sidebar = ({ onClose }) => {
     // { path: '/leaving', icon: UserX, label: 'Leaving' },
     { path: '/after-leaving-work', icon: UserMinus, label: 'After Leaving Work' },
     { path: '/employee', icon: Users, label: 'Employee' },
-    { path: '/leave-management', icon: BookPlus, label: 'Leave Management' },
+    // { path: '/leave-management', icon: BookPlus, label: 'Leave Management' },
     // { path: '/gate-pass', icon: DoorOpen, label: 'Gate Pass' },
     {
       type: 'dropdown',

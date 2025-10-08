@@ -60,7 +60,7 @@ const Joining = () => {
     companyProvidesPf: '',
     companyProvidesEsic: '',
     companyProvidesEmail: '',
-    status: '',
+    // status: '',
     attendanceType: '',
     // plannedDate: '',
     validateCandidate: false,
@@ -558,7 +558,7 @@ const Joining = () => {
       companyProvidesPf: '',  // यह add करना था
       companyProvidesEsic: '',  // यह add करना था
       companyProvidesEmail: '',  // यह add करना था
-      status: '',
+      // status: '',
       attendanceType: '',  // यह add करना था
       // plannedDate: '',  // यह add करना था
       validateCandidate: false,
@@ -893,34 +893,34 @@ const Joining = () => {
       const rowData = [];
       rowData[0] = formattedTimestamp;                    // Column A: Timestamp
       rowData[1] = joiningFormData.joiningId;             // Column B: Joining ID
-      rowData[2] = joiningFormData.firmName;              // Column C: Firm Name
-      rowData[3] = joiningFormData.nameAsPerAadhar;       // Column D: Name As Per Aadhar
-      rowData[4] = joiningFormData.bloodGroup;            // Column E: Blood Group
-      rowData[5] = joiningFormData.fatherName;            // Column F: Father Name
-      rowData[6] = formatDateForStorage(joiningFormData.dateOfJoining); // Column G: Date Of Joining
-      rowData[7] = joiningFormData.workLocation;          // Column H: Work Location
-      rowData[8] = joiningFormData.designation;           // Column I: Designation
-      rowData[9] = joiningFormData.salary;                // Column J: Salary
-      rowData[10] = fileUrls.aadharFrontPhoto;            // Column K: Aadhar Frontside Photo
-      rowData[11] = fileUrls.aadharBackPhoto;             // Column L: Aadhar Backside Photo
-      rowData[12] = fileUrls.panCard;                     // Column M: PAN Card
-      rowData[13] = joiningFormData.relationship;         // Column N: Relationship with Family Person
-      rowData[14] = joiningFormData.currentAddress;       // Column O: Current Address
-      rowData[15] = joiningFormData.aadharAddress;        // Column P: Address as per Aadhar Card
-      rowData[16] = formatDOBForStorage(joiningFormData.dobAsPerAadhar); // Column Q: Date Of Birth
-      rowData[17] = joiningFormData.gender;               // Column R: Gender
-      rowData[18] = joiningFormData.mobileNumber;         // Column S: Mobile Number
-      rowData[19] = joiningFormData.familyNumber;         // Column T: Family Number
-      rowData[20] = joiningFormData.pastPfId || '';       // Column U: Past PF Id No.
-      rowData[21] = joiningFormData.pastEsicNumber || ''; // Column V: Past Esic Number
-      rowData[22] = joiningFormData.currentBankAcNo;      // Column W: Current Bank Account Number
-      rowData[23] = joiningFormData.ifscCode;             // Column X: IFSC Code
-      rowData[24] = joiningFormData.branchName;           // Column Y: Branch Name
-      rowData[25] = joiningFormData.personalEmail;        // Column Z: Personal Email ID
-      rowData[26] = joiningFormData.companyProvidesPf;    // Column AA: Company Provide PF?
-      rowData[27] = joiningFormData.companyProvidesEsic;  // Column AB: Company Provide ESIC?
-      rowData[28] = joiningFormData.companyProvidesEmail; // Column AC: Company Provide Email?
-      rowData[29] = joiningFormData.status;               // Column AD: Status
+      rowData[2] = 'Active';                // Column AD: Status
+      rowData[3] = joiningFormData.firmName;              // Column C: Firm Name
+      rowData[4] = joiningFormData.nameAsPerAadhar;       // Column D: Name As Per Aadhar
+      rowData[5] = joiningFormData.bloodGroup;            // Column E: Blood Group
+      rowData[6] = joiningFormData.fatherName;            // Column F: Father Name
+      rowData[7] = formatDateForStorage(joiningFormData.dateOfJoining); // Column G: Date Of Joining
+      rowData[8] = joiningFormData.workLocation;          // Column H: Work Location
+      rowData[9] = joiningFormData.designation;           // Column I: Designation
+      rowData[10] = joiningFormData.salary;                // Column J: Salary
+      rowData[11] = fileUrls.aadharFrontPhoto;            // Column K: Aadhar Frontside Photo
+      rowData[12] = fileUrls.aadharBackPhoto;             // Column L: Aadhar Backside Photo
+      rowData[13] = fileUrls.panCard;                     // Column M: PAN Card
+      rowData[14] = joiningFormData.relationship;         // Column N: Relationship with Family Person
+      rowData[15] = joiningFormData.currentAddress;       // Column O: Current Address
+      rowData[16] = joiningFormData.aadharAddress;        // Column P: Address as per Aadhar Card
+      rowData[17] = formatDOBForStorage(joiningFormData.dobAsPerAadhar); // Column Q: Date Of Birth
+      rowData[18] = joiningFormData.gender;               // Column R: Gender
+      rowData[19] = joiningFormData.mobileNumber;         // Column S: Mobile Number
+      rowData[20] = joiningFormData.familyNumber;         // Column T: Family Number
+      rowData[21] = joiningFormData.pastPfId || '';       // Column U: Past PF Id No.
+      rowData[22] = joiningFormData.pastEsicNumber || ''; // Column V: Past Esic Number
+      rowData[23] = joiningFormData.currentBankAcNo;      // Column W: Current Bank Account Number
+      rowData[24] = joiningFormData.ifscCode;             // Column X: IFSC Code
+      rowData[25] = joiningFormData.branchName;           // Column Y: Branch Name
+      rowData[26] = joiningFormData.personalEmail;        // Column Z: Personal Email ID
+      rowData[27] = joiningFormData.companyProvidesPf;    // Column AA: Company Provide PF?
+      rowData[28] = joiningFormData.companyProvidesEsic;  // Column AB: Company Provide ESIC?
+      rowData[29] = joiningFormData.companyProvidesEmail; // Column AC: Company Provide Email?
       rowData[30] = joiningFormData.attendanceType;       // Column AE: Attendance Type
       // rowData[31] = formatDateForStorage(joiningFormData.plannedDate); // Column AF: Planned Date
       rowData[31] = joiningFormData.validateCandidate ? 'Yes' : 'No';     // Column AG: Validate Candidate
@@ -1606,7 +1606,7 @@ const Joining = () => {
                       </select>
                     </div>
 
-                    <div>
+                    {/* <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Status (स्थिति)
                       </label>
@@ -1622,7 +1622,7 @@ const Joining = () => {
                         <option value="Inactive">Inactive (निष्क्रिय)</option>
                         <option value="Resigned">Resigned (त्यागपत्र)</option>
                       </select>
-                    </div>
+                    </div> */}
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1642,18 +1642,7 @@ const Joining = () => {
                       </select>
                     </div>
 
-                    {/* <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Planned Date (योजना तिथि)
-                      </label>
-                      <input
-                        type="date"
-                        name="plannedDate"
-                        value={joiningFormData.plannedDate}
-                        onChange={handleJoiningInputChange}
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-700"
-                      />
-                    </div> */}
+                  
                   </div>
                 </div>
 
