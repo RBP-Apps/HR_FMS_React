@@ -20,6 +20,73 @@ const CallTracker = () => {
   const [enquiryData, setEnquiryData] = useState([]);
   const [historyData, setHistoryData] = useState([]);
   const [error, setError] = useState(null);
+  const [status, setStatus] = useState([]);
+  
+
+
+   const fetchMasterData = async () => {
+    try {
+      const response = await fetch(
+        'https://script.google.com/macros/s/AKfycby9QCly-0XBtGHUqanlO6mPWRn79e_XOYhYUG6irCL60WG96JJpDCc4iTOdLRuVeUOa/exec?sheet=Master&action=fetch'
+      );
+
+      const result = await response.json();
+
+      if (result.success && result.data && result.data.length > 0) {
+
+        const status = [];
+
+        // Skip header row, start from index 1
+        for (let i = 1; i < result.data.length; i++) {
+          const row = result.data[i];
+
+          // Column C - Department
+          if (row[4] && row[4].trim() !== '' && !status.includes(row[4].trim())) {
+            status.push(row[4].trim());
+          }
+
+        }
+        setStatus(status);
+        return {
+          success: true,
+          departments: status,
+        };
+      } else {
+        return {
+          success: false,
+          error: 'No data found in Master sheet'
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching master data:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  };
+
+ useEffect(() => {
+    const loadData = async () => {
+      setTableLoading(true);
+
+      // Fetch master data first
+      await fetchMasterData();
+
+      // Then fetch indent data
+      const result = await fetchIndentDataFromRow7();
+      if (result.success) {
+        console.log('Data from row 7:', result.data);
+      } else {
+        console.error('Error:', result.error);
+      }
+      setTableLoading(false);
+    };
+    loadData();
+  }, []);
+
+
+
 
   const fetchEnquiryData = async () => {
     setLoading(true);
@@ -759,19 +826,15 @@ const CallTracker = () => {
                   Status (स्थिति) *
                 </label>
                 <select
-                  name="status"
+                  name="department"
                   value={formData.status}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-700"
-                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="">Select Status (स्थिति चुनें)</option>
-                  <option value="Follow-up">Follow-up </option>
-                  <option value="Interview">Interview (साक्षात्कार) </option>
-                  <option value="Negotiation">Negotiation (बातचीत) </option>
-                  <option value="On Hold">On Hold (होल्ड पर) </option>
-                  <option value="Joining">Joining (भर्ती)</option>
-                  <option value="Reject">Reject (अस्वीकार)</option>
+                  <option value="">Select Department</option>
+                  {status.map((dept, index) => (
+                    <option key={index} value={dept}>{dept}</option>
+                  ))}
                 </select>
               </div>
 

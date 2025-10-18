@@ -28,6 +28,9 @@ const Joining = () => {
     nextDate: ''
   });
   const [nextJoiningId, setNextJoiningId] = useState('');
+  const [relationshipOptions, setRelationshipOptions] = useState([]);
+  const [attendanceTypeOptions, setAttendanceTypeOptions] = useState([]);
+
 
   const [joiningFormData, setJoiningFormData] = useState({
     joiningId: '',
@@ -291,6 +294,61 @@ const Joining = () => {
     }
   };
 
+
+  const fetchMasterData = async () => {
+    try {
+      const response = await fetch(
+        'https://script.google.com/macros/s/AKfycby9QCly-0XBtGHUqanlO6mPWRn79e_XOYhYUG6irCL60WG96JJpDCc4iTOdLRuVeUOa/exec?sheet=Master&action=fetch'
+      );
+
+      const result = await response.json();
+
+      if (result.success && result.data && result.data.length > 0) {
+        // Column F (index 5) - Relationship with Family Person
+        // Column G (index 6) - Attendance Type
+
+        const relationships = [];
+        const attendanceTypes = [];
+
+        // Skip header row, start from index 1
+        for (let i = 1; i < result.data.length; i++) {
+          const row = result.data[i];
+
+          // Column F - Relationship with Family Person
+          if (row[5] && row[5].trim() !== '' && !relationships.includes(row[5].trim())) {
+            relationships.push(row[5].trim());
+          }
+
+          // Column G - Attendance Type
+          if (row[6] && row[6].trim() !== '' && !attendanceTypes.includes(row[6].trim())) {
+            attendanceTypes.push(row[6].trim());
+          }
+        }
+
+        setRelationshipOptions(relationships);
+        setAttendanceTypeOptions(attendanceTypes);
+
+        return {
+          success: true,
+          relationships: relationships,
+          attendanceTypes: attendanceTypes
+        };
+      } else {
+        return {
+          success: false,
+          error: 'No data found in Master sheet'
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching master data:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  };
+
+
   const handleShareClick = (item) => {
     setSelectedItem(item);
     // Create the share link with enquiry number
@@ -517,6 +575,7 @@ const Joining = () => {
     fetchJoiningData();
     fetchFirmNames();
     fetchLastJoiningId();
+    fetchMasterData();
   }, []);
 
 
@@ -1365,12 +1424,9 @@ const Joining = () => {
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-700"
                       >
                         <option value="">Select Relationship</option>
-                        <option value="Father">Father (पिता)</option>
-                        <option value="Mother">Mother (माता)</option>
-                        <option value="Brother">Brother (भाई)</option>
-                        <option value="Sister">Sister (बहन)</option>
-                        <option value="Spouse">Spouse (पति/पत्नी)</option>
-                        <option value="Other">Other (अन्य)</option>
+                        {relationshipOptions.map((relationship, index) => (
+                          <option key={index} value={relationship}>{relationship}</option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -1635,14 +1691,13 @@ const Joining = () => {
                         className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-700"
                       >
                         <option value="">Select Attendance Type</option>
-                        <option value="Full-time">Full-time (पूर्णकालिक)</option>
-                        <option value="Part-time">Part-time (अंशकालिक)</option>
-                        <option value="Shift">Shift (पारी)</option>
-                        <option value="Work from Home">Work from Home (घर से काम)</option>
+                        {attendanceTypeOptions.map((type, index) => (
+                          <option key={index} value={type}>{type}</option>
+                        ))}
                       </select>
                     </div>
 
-                  
+
                   </div>
                 </div>
 
